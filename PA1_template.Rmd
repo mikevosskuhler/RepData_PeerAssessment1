@@ -8,18 +8,72 @@ output:
 
 ## Loading and preprocessing the data
 
-
+```{r}
+library(tidyverse)
+library(magrittr)
+library(lattice)
+unzip("activity.zip")
+activity_data <- read.csv(file = "activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
 
-
+```{r}
+#sum of steps/day
+activity_data %>% xtabs(formula = steps~date)
+#histogram
+activity_data %>% xtabs(formula = steps~date)%>% 
+  hist(main = "steps/day", xlab = "number of steps")
+#mean and median
+activity_data%>% xtabs(formula = steps~date) %>% mean()
+activity_data%>% xtabs(formula = steps~date) %>% median()
+```
 
 ## What is the average daily activity pattern?
 
-
+```{r}
+# plotting data
+activity_data %>% xtabs(formula = steps~interval) %>% plot(type = "l", 
+                                                           ylab = "Steps",
+                                                           main = "daily pattern")
+#calculating max value
+activity_data %>% xtabs(formula = steps~interval) %>% .[which.max(.)]
+```
 
 ## Imputing missing values
 
-
+```{r}
+#list of unique intervals
+inter <- unique(activity_data$interval) %>% as.character()
+#new dataframe
+activity_data2 <- activity_data
+#mutating dataframe, replace all NA`s with interval mean
+for (i in inter) {
+  m <- activity_data2[activity_data2$interval==i, 1] %>% mean(na.rm=T)
+  activity_data2[activity_data2$interval==i, 1] %<>% replace_na(m)
+}
+#plotting hist
+activity_data2 %>% xtabs(formula = steps~date) %>% hist(main = "step/day", 
+                                                        xlab = "steps")
+#calculating mean
+activity_data2 %>% xtabs(formula = steps~date) %>% mean()
+#calculating median
+activity_data2 %>% xtabs(formula = steps~date) %>% median()
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+#creating week and weekend days col
+activity_data2 %<>% mutate(date = date %>% as.Date()) %>% 
+  mutate(weekday = weekdays(date) %>% gsub(pattern = "Saturday|Sunday", 
+                                           replacement = "weekend") %>% 
+           gsub(pattern = "Monday|Tuesday|Wednesday|Thursday|Friday", 
+                replacement = "Week") %>% as.factor())
+xdf <- activity_data2 %>% xtabs(formula = steps~interval+weekday) %>% 
+  as.data.frame() %>% rename(steps = Freq) #dataframe with sums of intervals for week/weekend
+#creating plot
+xyplot(xdf$steps~xdf$interval %>% as.character %>% as.numeric()|xdf$weekday, type = "l",
+       xlab = "interval", ylab = "Steps")
+```
+
